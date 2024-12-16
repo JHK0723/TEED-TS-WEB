@@ -147,10 +147,16 @@ Feel free to contribute by submitting pull requests or issues!
 
 ## Screenshots
 
-![App Screenshot](https://via.placeholder.com/468x300?text=App+Screenshot+Here)
+![screenshots](https://github.com/LegitCoconut/TEED-TS/blob/main/screenshot/block_diagran.jpg).
+
+![screenshots](https://github.com/LegitCoconut/TEED-TS/blob/main/screenshot/out_csv.jpg)
+
+![screenshots](https://github.com/LegitCoconut/TEED-TS/blob/main/screenshot/out_graph.jpg)
+
+![screenshots](https://github.com/LegitCoconut/TEED-TS/blob/main/screenshot/project.jpg)
 
 
 ## Support
 
-For support, email labzmad44@gmail.com or join our Slack channel.
+For support, email labzmad44@gmail.com .
 
