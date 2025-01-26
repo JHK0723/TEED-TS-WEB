@@ -1,3 +1,4 @@
+![screenshots](https://github.com/LegitCoconut/TEED-TS/blob/main/screenshot/teeds.png)
 # 🚪 Touchless Entry-Exit Data Tracking System (TEED-TS)
 
 ## 📖 Overview
