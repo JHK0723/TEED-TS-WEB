@@ -64,30 +64,6 @@ from datetime import datetime
 from collections import Counter
 from flask import jsonify
 
-@app.route("/graph-data", methods=["GET"])
-def graph_data():
-    # Fetch logs from MongoDB
-    logs = collection.find({}, {"_id": 0, "timestamp": 1})
-
-    # Extract hours from timestamps
-    hourly_movements = Counter()
-    for log in logs:
-        try:
-            # Ensure timestamp is parsed correctly
-            timestamp = log["timestamp"]
-            if isinstance(timestamp, str):  # If timestamp is a string, parse it
-                timestamp = datetime.fromisoformat(timestamp)
-            hourly_movements[timestamp.hour] += 1
-        except Exception as e:
-            print(f"Error processing log: {log}, Error: {e}")
-
-    # Generate labels for all hours (0 to 23)
-    hours = [f"{hour}:00" for hour in range(24)]
-
-    # Fill missing hours with zero movements
-    movements = [hourly_movements.get(hour, 0) for hour in range(24)]
-
-    return jsonify({"hours": hours, "movements": movements})
 
 if __name__ == "__main__":
     app.run(debug=True)

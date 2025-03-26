@@ -123,51 +123,13 @@
             document.getElementById('currentInside').innerText = data.current_inside || '0';
         }
 
-        async function fetchGraphData() {
-          try {
-              const response = await fetch('/graph-data');
-              const graphData = await response.json();
-
-              const ctx = document.getElementById('movementChart').getContext('2d');
-
-              // Destroy any existing chart instance to avoid duplication
-              if (window.movementChart) {
-                  window.movementChart.destroy();
-              }
-
-              // Create a new chart instance
-              window.movementChart = new Chart(ctx, {
-                  type: 'bar',
-                  data: {
-                      labels: graphData.hours,
-                      datasets: [
-                          {
-                              label: 'People Movement',
-                              data: graphData.movements,
-                              backgroundColor: 'rgba(75,192,192,0.6)',
-                              borderColor: 'rgba(75,192,192,1)',
-                              borderWidth: 1
-                          }
-                      ]
-                  },
-                  options: {
-                      responsive: true,
-                      plugins: {
-                          legend: { position: 'top' },
-                          title: { display: true, text: 'People Movement by Hour' }
-                      },
-                      scales: { yAxes:{ beginAtZero:true}}
-                  }
-              });
-          } catch (error) {
-              console.error('Error fetching graph data:', error);
-          }
-      }
+        
+      
       
       function updateData() {
           fetchLogs();
           fetchAnalytics();
-          fetchGraphData();
+          
       }
       
       window.onload = updateData;
