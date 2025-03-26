@@ -1,114 +1,94 @@
-import serial
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import csv
-import datetime
-import re
+from flask import Flask, render_template, request, jsonify
+from pymongo import MongoClient
+from datetime import datetime
+import os
+from dotenv import load_dotenv
+load_dotenv() 
+client = MongoClient(os.environ.get("MONGODB_URI"))
 
-# Configure your serial port and baud rate here
-serial_port = 'COM5'  # Update with your port (e.g., 'COM3' on Windows or '/dev/ttyUSB0' on Linux)
-baud_rate = 115200
-output_file = "serial_data.csv"
-threshold = 1000  # Customizable threshold for total count
 
-# Initialize serial connection
-ser = serial.Serial(serial_port, baud_rate)
+app = Flask(__name__)
 
-# Initialize data storage
-entry_count = 0
-exit_count = 0
-total_count = 0
-time_stamps = []
+# MongoDB connection
 
-# Set up CSV file for data storage
-with open(output_file, 'w', newline='') as csvfile:
-    csvwriter = csv.writer(csvfile)
-    csvwriter.writerow(['Timestamp', 'Type', 'Count'])  # Write header row
+client = MongoClient(os.environ.get("MONGODB_URI"))
 
-# Set up matplotlib figure and axis
-fig, ax = plt.subplots()
-bars = ax.bar(['Entry', 'Exit'], [entry_count, exit_count], color=['green', 'red'])
+db = client["teed_ts_db"]
+collection = db["entry_exit_logs"]
 
-# Set integer tick marks for y-axis
-ax.yaxis.get_major_locator().set_params(integer=True)
-total_count_annotation = ax.text(0.5, max(entry_count, exit_count), '', 
-                                 ha='center', va='bottom', fontsize=12, color='blue')
+@app.route("/")
+def home():
+    logs = collection.find().sort("timestamp", -1)
+    total_entries = collection.count_documents({"action": "entry"})
+    total_exits = collection.count_documents({"action": "exit"})
+    current_inside = total_entries - total_exits
+    return render_template("index.html", logs=logs, total_entries=total_entries, total_exits=total_exits, current_inside=current_inside)
 
-# Function to parse the time from the serial message
-def parse_time_from_message(message):
-    match = re.search(r"(\d+) hr : (\d+) min : (\d+) sec", message)
-    if match:
-        hours, minutes, seconds = map(int, match.groups())
-        return datetime.datetime.now().replace(hour=hours, minute=minutes, second=seconds)
-    return None
+from datetime import datetime
 
-# Function to print current counts
-def print_counts():
-    print(f"\nSummary:")
-    print(f"  Total Entries: {entry_count}")
-    print(f"  Total Exits: {exit_count}")
-    print(f"  Current Count: {total_count}")
+@app.route("/log", methods=["POST"])
+def log_entry_exit():
+    data = request.json
+    if "action" not in data or data["action"] not in ["entry", "exit"]:
+        return jsonify({"error": "Invalid action"}), 400
+    
+    try:
+        timestamp = datetime.fromisoformat(data["timestamp"])  # Parse ISO timestamp
+    except (KeyError, ValueError):
+        return jsonify({"error": "Invalid or missing timestamp"}), 400
 
-# Function to update bar graph
-def update(frame):
-    global entry_count, exit_count, total_count
+    log = {
+        "action": data["action"],
+        "timestamp": timestamp
+    }
+    collection.insert_one(log)
+    return jsonify({"message": "Logged successfully"}), 201
 
-    if ser.in_waiting > 0:
-        # Read a line from the serial port with error handling for decoding
-        line = ser.readline().decode('utf-8', errors='ignore').strip()
-        timestamp = None
-        label = None
+@app.route("/logs", methods=["GET"])
+def get_logs():
+    logs = list(collection.find({}, {"_id": 0}).sort("timestamp", -1))
+    return jsonify(logs)
 
-        # Check for entry or exit in the message
-        if "Entry detected at" in line:
-            entry_count += 1
-            total_count += 1
-            timestamp = parse_time_from_message(line)
-            time_stamps.append((timestamp, "Entry", entry_count))
-            bars[0].set_height(entry_count)  # Update entry bar height
-            label = 'Entry'
-        
-        elif "Exit detected at" in line:
-            exit_count += 1
-            total_count -= 1
-            timestamp = parse_time_from_message(line)
-            time_stamps.append((timestamp, "Exit", exit_count))
-            bars[1].set_height(exit_count)  # Update exit bar height
-            label = 'Exit'
+@app.route("/analytics", methods=["GET"])
+def analytics():
+    total_entries = collection.count_documents({"action": "entry"})
+    total_exits = collection.count_documents({"action": "exit"})
+    current_inside = total_entries - total_exits
+    return jsonify({
+        "total_entries": total_entries,
+        "total_exits": total_exits,
+        "current_inside": current_inside
+    })
 
-        # Update total count annotation
-        total_count_annotation.set_text(f"Total Count: {total_count}")
-        total_count_annotation.set_position((0.5, max(entry_count, exit_count) + 1))
+from datetime import datetime
+from collections import Counter
+from flask import jsonify
 
-        # Save data to CSV
-        if timestamp:
-            with open(output_file, 'a', newline='') as csvfile:
-                csvwriter = csv.writer(csvfile)
-                csvwriter.writerow([timestamp.strftime("%Y-%m-%d %H:%M:%S"), label, entry_count if label == 'Entry' else exit_count])
+@app.route("/graph-data", methods=["GET"])
+def graph_data():
+    # Fetch logs from MongoDB
+    logs = collection.find({}, {"_id": 0, "timestamp": 1})
 
-        # Console output
-        if timestamp:
-            print(f"{label} at {timestamp.strftime('%H:%M:%S')}")
-        else:
-            print(f"{label} detected, but timestamp unavailable.")
-        
-        # Print summary counts
-        print_counts()
+    # Extract hours from timestamps
+    hourly_movements = Counter()
+    for log in logs:
+        try:
+            # Ensure timestamp is parsed correctly
+            timestamp = log["timestamp"]
+            if isinstance(timestamp, str):  # If timestamp is a string, parse it
+                timestamp = datetime.fromisoformat(timestamp)
+            hourly_movements[timestamp.hour] += 1
+        except Exception as e:
+            print(f"Error processing log: {log}, Error: {e}")
 
-        # Check for threshold warning
-        if total_count > threshold:
-            print("WARNING: Total count has exceeded the threshold!")
+    # Generate labels for all hours (0 to 23)
+    hours = [f"{hour}:00" for hour in range(24)]
 
-    return bars
+    # Fill missing hours with zero movements
+    movements = [hourly_movements.get(hour, 0) for hour in range(24)]
 
-# Set up real-time animation with cache_frame_data=False
-ani = animation.FuncAnimation(fig, update, interval=1000, cache_frame_data=False)
+    return jsonify({"hours": hours, "movements": movements})
 
-# Display the bar graph with labels and title
-plt.xlabel("Event Type")
-plt.ylabel("Count")
-plt.title("Real-Time Entry and Exit Count")
-plt.show()
+if __name__ == "__main__":
+    app.run(debug=True)
 
-# Close the serial connection when done
-ser.close()
