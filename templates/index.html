@@ -4,10 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TEED-TS Dashboard</title>
-    <link type="image/png" sizes="96x96" rel="icon" href="{{ url_for('static', filename='logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
 
     <style>
-        
         body {
             font-family: 'Roboto', Arial, sans-serif;
             margin: 0;
@@ -23,7 +22,6 @@
             letter-spacing: 1px;
         }
 
-        /* Stats Section */
         .stats {
             margin-top: 30px;
             display: flex;
@@ -52,33 +50,26 @@
         }
 
         .highlight {
-            color: #ffd700; /* Gold color for emphasis */
+            color: #ffd700;
             font-size: 2rem;
         }
 
-        /* Table Section */
         table {
             width: 80%;
             margin: 30px auto;
             border-collapse: collapse;
             background-color: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
-            overflow: hidden; /* To apply rounded corners */
+            overflow: hidden;
+        }
+
+        th, td {
+            text-align: center;
+            padding: 12px;
         }
 
         th {
             background-color: rgba(255, 255, 255, 0.2);
-            color: #ffffff;
-            padding: 15px;
-        }
-
-        td {
-            padding: 12px;
-        }
-
-        th,
-        td {
-            text-align: center;
         }
 
         tbody tr:nth-child(even) {
@@ -89,86 +80,197 @@
             background-color: rgba(255, 255, 255, 0.2);
         }
 
-        /* Graph Section */
-        canvas {
-            margin-top: 30px;
+        .chart-container {
+            width: 90%;
+            max-width: 1000px;
+            height: 400px;
+            margin: 30px auto;
+        }
+
+        .pie-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 30px auto;
+        }
+
+        .pie-wrapper {
+            width: 300px;
+            height: 300px;
+            max-width: 90vw;
+            max-height: 90vw;
+        }
+
+        .centered-header {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ffd700;
         }
     </style>
+    </head>
+<body>
+    <h2>TEED-TS Entry/Exit Dashboard</h2>
 
-    <!-- Chart.js Library -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Stats -->
+    <div class="stats">
+        <div class="card">Total Entries: <span id="totalEntries" class="highlight">0</span></div>
+        <div class="card">Total Exits: <span id="totalExits" class="highlight">0</span></div>
+        <div class="card">Currently Inside: <span id="currentInside" class="highlight">0</span></div>
+    </div>
+
+    <!-- Logs Table -->
+    <table>
+        <thead>
+            <tr>
+                <th>Action</th>
+                <th>Timestamp</th>
+            </tr>
+        </thead>
+        <tbody id="logTable"></tbody>
+    </table>
+
+    <!-- Bar Chart -->
+    <div class="chart-container">
+        <canvas id="intervalChart"></canvas>
+    </div>
+
+    <!-- Pie Chart -->
+    <div class="pie-container">
+        <div class="centered-header">Total Entry vs Exit</div>
+        <div class="pie-wrapper">
+            <canvas id="totalChart"></canvas>
+        </div>
+    </div>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
     <script>
+        let intervalChart, totalChart;
+
         async function fetchLogs() {
-            const response = await fetch('/logs');
-            const data = await response.json();
-            
+            const res = await fetch('/logs');
+            const data = await res.json();
             const tableBody = document.getElementById('logTable');
-            
             tableBody.innerHTML = '';
-            
             data.forEach(log => {
                 const row = `<tr><td>${log.action}</td><td>${new Date(log.timestamp).toLocaleString()}</td></tr>`;
                 tableBody.innerHTML += row;
             });
         }
 
-        async function fetchAnalytics() {
-            const response = await fetch('/analytics');
-            
-            const data = await response.json();
-            
-            document.getElementById('totalEntries').innerText = data.total_entries || '0';
-            document.getElementById('totalExits').innerText = data.total_exits || '0';
-            document.getElementById('currentInside').innerText = data.current_inside || '0';
+        async function fetchStats() {
+            const res = await fetch('/analytics');
+            const data = await res.json();
+            document.getElementById('totalEntries').innerText = data.total_entries;
+            document.getElementById('totalExits').innerText = data.total_exits;
+            document.getElementById('currentInside').innerText = data.current_inside;
         }
 
-        
-      
-      
-      function updateData() {
-          fetchLogs();
-          fetchAnalytics();
-          
-      }
-      
-      window.onload = updateData;
+        async function drawIntervalChart() {
+            const res = await fetch('/analytics/interval');
+            const data = await res.json();
 
+            const hourly = {};
+            Object.keys(data).forEach(ts => {
+                const hour = new Date(ts).getHours();
+                if (!hourly[hour]) hourly[hour] = { entry: 0, exit: 0 };
+                hourly[hour].entry += data[ts].entry || 0;
+                hourly[hour].exit += data[ts].exit || 0;
+            });
+
+            const labels = Array.from({ length: 24 }, (_, i) => {
+                const hour = i % 12 === 0 ? 12 : i % 12;
+                const suffix = i < 12 ? 'AM' : 'PM';
+                return `${hour} ${suffix}`;
+            });
+
+            const entries = labels.map((_, i) => hourly[i]?.entry || 0);
+            const exits = labels.map((_, i) => hourly[i]?.exit || 0);
+
+            if (intervalChart) intervalChart.destroy();
+            const ctx = document.getElementById('intervalChart').getContext('2d');
+            intervalChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Entries',
+                            data: entries,
+                            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Exits',
+                            data: exits,
+                            backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true },
+                        y: {
+                            beginAtZero: true,
+                            stacked: true,
+                            title: { display: true, text: 'Count' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+        }
+
+        async function drawPieChart() {
+            const res = await fetch('/analytics');
+            const data = await res.json();
+
+            if (totalChart) totalChart.destroy();
+            const ctx = document.getElementById('totalChart').getContext('2d');
+            totalChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Entries', 'Exits'],
+                    datasets: [{
+                        data: [data.total_entries, data.total_exits],
+                        backgroundColor: ['#36A2EB', '#FF6384']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: true, position: 'top' }
+                    }
+                }
+            });
+        }
+
+        function updateDashboard() {
+            fetchLogs();
+            fetchStats();
+            drawIntervalChart();
+            drawPieChart();
+        }
+        const socket = io.connect();
+        socket.on('update_data', function() {
+            console.log('New data received!');
+            updateDashboard();
+        });
+        
+
+        window.onload = updateDashboard;
     </script>
-</head>
-<body>
-    <h2 aria-label="Dashboard Title">TEED-TS Entry/Exit Dashboard</h2>
-
-
-    <!-- Stats Section -->
-    <div class="stats">
-        <div class="card">
-          Total Entries:
-          <span id="totalEntries" class="highlight">0</span>
-        </div>
-        
-        <div class="card">
-          Total Exits:
-          <span id="totalExits" class="highlight">0</span>
-        </div>
-        
-        <div class="card">
-          Currently Inside:
-          <span id="currentInside" class="highlight">0</span>
-        </div>
-    </div>
-
-    <!-- Logs Table -->
-    <table>
-      <thead>
-          <tr>
-              <th>Action</th>
-              <th>Timestamp</th>
-          </tr>
-      </thead>
-      <tbody id="logTable"></tbody>
-    </table>
-
-    <!-- Graph Section -->
 </body>
 </html>
