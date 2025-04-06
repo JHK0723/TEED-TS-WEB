@@ -54,30 +54,60 @@
             font-size: 2rem;
         }
 
-        table {
-            width: 80%;
+        .table-scroll {
             margin: 30px auto;
-            border-collapse: collapse;
-            background-color: rgba(255, 255, 255, 0.1);
+            width: 80%;
             border-radius: 10px;
-            overflow: hidden;
+            background-color: rgba(255, 255, 255, 0.1);
         }
 
-        th, td {
+        .table-scroll table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table-scroll thead {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .table-scroll th, .table-scroll td {
             text-align: center;
             padding: 12px;
         }
 
-        th {
-            background-color: rgba(255, 255, 255, 0.2);
+        .table-scroll tbody {
+            display: block;
+            max-height: 480px;
+            overflow-y: auto;
         }
 
-        tbody tr:nth-child(even) {
+        .table-scroll thead tr {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .table-scroll tbody tr {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .table-scroll tbody tr:nth-child(even) {
             background-color: rgba(255, 255, 255, 0.05);
         }
 
-        tbody tr:hover {
+        .table-scroll tbody tr:hover {
             background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .table-scroll tbody::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .table-scroll tbody::-webkit-scrollbar-thumb {
+            background-color: #ccc;
+            border-radius: 10px;
         }
 
         .chart-container {
@@ -107,7 +137,7 @@
             color: #ffd700;
         }
     </style>
-    </head>
+</head>
 <body>
     <h2>TEED-TS Entry/Exit Dashboard</h2>
 
@@ -119,15 +149,17 @@
     </div>
 
     <!-- Logs Table -->
-    <table>
-        <thead>
-            <tr>
-                <th>Action</th>
-                <th>Timestamp</th>
-            </tr>
-        </thead>
-        <tbody id="logTable"></tbody>
-    </table>
+    <div class="table-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th>Action</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody id="logTable"></tbody>
+        </table>
+    </div>
 
     <!-- Bar Chart -->
     <div class="chart-container">
@@ -142,7 +174,6 @@
         </div>
     </div>
 
-    
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
@@ -216,17 +247,32 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        x: { stacked: true },
+                        x: {
+                            stacked: true,
+                            ticks: {
+                                color: '#f0f0f0'
+                            }
+                        },
                         y: {
                             beginAtZero: true,
                             stacked: true,
-                            title: { display: true, text: 'Count' }
+                            title: {
+                                display: true,
+                                text: 'Count',
+                                color: '#f0f0f0'
+                            },
+                            ticks: {
+                                color: '#f0f0f0'
+                            }
                         }
                     },
                     plugins: {
                         legend: {
                             display: true,
-                            position: 'top'
+                            position: 'top',
+                            labels: {
+                                color: '#f0f0f0'
+                            }
                         }
                     }
                 }
@@ -251,7 +297,13 @@
                 options: {
                     responsive: true,
                     plugins: {
-                        legend: { display: true, position: 'top' }
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: '#f0f0f0'
+                            }
+                        }
                     }
                 }
             });
@@ -263,14 +315,17 @@
             drawIntervalChart();
             drawPieChart();
         }
+
         const socket = io.connect();
         socket.on('update_data', function() {
             console.log('New data received!');
             updateDashboard();
         });
-        
 
         window.onload = updateDashboard;
     </script>
 </body>
 </html>
+
+
+
