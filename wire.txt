@@ -1,0 +1,5 @@
+yellow -> D2 ( public )
+green -> D1 ( entry )
+
+red -> 3V
+white -> GND
