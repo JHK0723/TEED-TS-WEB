@@ -15,10 +15,10 @@ bool entryDetected = false;
 bool exitDetected = false;
 
 //wifi credential for connecting to network
-const char* ssid     = "WIFI_SSID";
-const char* password = "WIFI_PASSWORD";
+const char* ssid     = "errr";
+const char* password = "err@12345";
 
-const char* serverIP = "http://192.168.1.100:5000";
+const char* serverIP = "http://192.168.236.179:5000";
 
 void setup() {
   // Initialize serial monitor
@@ -56,7 +56,8 @@ void loop() {
       entryDetected = true;
       if (WiFi.status() == WL_CONNECTED) {
         HTTPClient http;
-        http.begin(String(serverIP) + "/log/entry");
+        WiFiClient client;
+        http.begin(client, String(serverIP) + "/log/entry");
         http.POST("");
         http.end();
       }
@@ -72,11 +73,12 @@ void loop() {
       exitStartTime = millis(); // Start timing if sensors are both high
     }
     if (millis() - exitStartTime >= 300 && !exitDetected) {
-      Serial.println("EXIT DETECTED")
-      exitDetected = false;
+      Serial.println("EXIT DETECTED");
+      exitDetected = true;
       if (WiFi.status() == WL_CONNECTED) {
         HTTPClient http;
-        http.begin(String(serverIP) + "/log/exit");
+        WiFiClient client;
+        http.begin(client, String(serverIP) + "/log/exit");
         http.POST("");
         http.end();
       }
@@ -86,3 +88,5 @@ void loop() {
     exitDetected = false; // Reset flag to allow new detection
   }
 }
+
+//legitCoconut
