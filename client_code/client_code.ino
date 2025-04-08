@@ -1,7 +1,10 @@
+//header files for http requests and wifi acesss
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
+
 // Pin definitions for entry and exit IR sensors
 const int entryIR1 = 5;
 const int exitIR1 = 4;
-
 
 // Variables to store timing information
 unsigned long entryStartTime = 0;
@@ -11,16 +14,11 @@ unsigned long exitStartTime = 0;
 bool entryDetected = false;
 bool exitDetected = false;
 
-#include <ESP8266WiFi.h>
-#include <WiFiUdp.h>
-#include <NTPClient.h>
-
+//wifi credential for connecting to network
 const char* ssid     = "WIFI_SSID";
 const char* password = "WIFI_PASSWORD";
 
-// Define NTP Client to get time
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org", 19800 , 30000); // Update every 60 seconds
+const char* serverIP = "http://192.168.1.100:5000";
 
 void setup() {
   // Initialize serial monitor
@@ -28,11 +26,9 @@ void setup() {
   
   // Set up pins for the sensors
   pinMode(entryIR1, INPUT);
- 
   pinMode(exitIR1, INPUT);
   
-
-   Serial.print("Connecting to ");
+  Serial.print("Connecting to ");
   Serial.println(ssid);
   WiFi.begin(ssid, password);
   
@@ -43,38 +39,27 @@ void setup() {
   Serial.println();
   Serial.println("WiFi connected.");
 
-  // Initialize NTP client
-  timeClient.begin();
 }
 
 void loop() {
-
-  timeClient.update();
-  unsigned long epochTime = timeClient.getEpochTime();
-  int currentHour = timeClient.getHours();
-  int currentMinute = timeClient.getMinutes();
-  int currentSecond = timeClient.getSeconds();
-
   // Read sensor states
   int entryIR1State = digitalRead(entryIR1);
-  int entryIR2State = digitalRead(entryIR2);
   int exitIR1State = digitalRead(exitIR1);
-  int exitIR2State = digitalRead(exitIR2);
 
   // Check entry detection condition
   if (entryIR1State == LOW ) {
     if (entryStartTime == 0) {
       entryStartTime = millis(); // Start timing if sensors are both high
     }
-    if (millis() - entryStartTime >= 500 && !entryDetected) {
-      Serial.print("Entry detected at :");
-      Serial.print(currentHour);
-      Serial.print(" hr : ");
-      Serial.print(currentMinute);
-      Serial.print(" min : ");
-      Serial.print(currentSecond);
-      Serial.println(" sec");
-      entryDetected = true; // Mark as detected to avoid repeated prints
+    if (millis() - entryStartTime >= 300 && !entryDetected) {
+      Serial.println("ENTRY DETECTED");
+      entryDetected = true;
+      if (WiFi.status() == WL_CONNECTED) {
+        HTTPClient http;
+        http.begin(String(serverIP) + "/log/entry");
+        http.POST("");
+        http.end();
+      }
     }
   } else {
     entryStartTime = 0; // Reset timing if sensors go low
@@ -86,15 +71,15 @@ void loop() {
     if (exitStartTime == 0) {
       exitStartTime = millis(); // Start timing if sensors are both high
     }
-    if (millis() - exitStartTime >= 500 && !exitDetected) {
-      Serial.print("Exit detected at : ");
-      Serial.print(currentHour);
-      Serial.print(" hr : ");
-      Serial.print(currentMinute);
-      Serial.print(" min : ");
-      Serial.print(currentSecond);
-      Serial.println(" sec");
-      exitDetected = true; // Mark as detected to avoid repeated prints
+    if (millis() - exitStartTime >= 300 && !exitDetected) {
+      Serial.println("EXIT DETECTED")
+      exitDetected = false;
+      if (WiFi.status() == WL_CONNECTED) {
+        HTTPClient http;
+        http.begin(String(serverIP) + "/log/exit");
+        http.POST("");
+        http.end();
+      }
     }
   } else {
     exitStartTime = 0; // Reset timing if sensors go low
