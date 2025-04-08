@@ -36,28 +36,51 @@ def home():
     current_inside = total_entries - total_exits
     return render_template("index.html", logs=logs, total_entries=total_entries, total_exits=total_exits, current_inside=current_inside)
 
-@app.route("/log", methods=["POST"])
-def log_entry_exit():
-    data = request.json
-    if "action" not in data or data["action"] not in ["entry", "exit"]:
-        return jsonify({"error": "Invalid action"}), 400
+#@app.route("/log", methods=["POST"])
+#def log_entry_exit():
+#    data = request.json
+#    if "action" not in data or data["action"] not in ["entry", "exit"]:
+#        return jsonify({"error": "Invalid action"}), 400
+#
+#    try:
+#        timestamp = datetime.fromisoformat(data["timestamp"])  # Parse ISO timestamp
+#    except (KeyError, ValueError):
+#        return jsonify({"error": "Invalid or missing timestamp"}), 400
+#
+#    log = {
+#        "action": data["action"],
+#        "timestamp": timestamp
+#    }
+#    collection.insert_one(log)
+#
+#    # Emit update to all connected clients
+#    socketio.emit('update_data', {"message": "New log entry added"})
+#    print("📡 update_data emitted to clients")
+#
+#    return jsonify({"message": "Logged successfully"}), 201
 
-    try:
-        timestamp = datetime.fromisoformat(data["timestamp"])  # Parse ISO timestamp
-    except (KeyError, ValueError):
-        return jsonify({"error": "Invalid or missing timestamp"}), 400
+@app.route("/log/entry", methods=["POST"])
+def log_entry():
+    
 
     log = {
-        "action": data["action"],
-        "timestamp": timestamp
+        "action": "entry",
+        "timestamp": datetime.now().isoformat()
     }
     collection.insert_one(log)
+    socketio.emit('update_data', {"message": "New entry logged"})
 
-    # Emit update to all connected clients
-    socketio.emit('update_data', {"message": "New log entry added"})
-    print("📡 update_data emitted to clients")
 
-    return jsonify({"message": "Logged successfully"}), 201
+
+@app.route("/log/exit", methods=["POST"])
+def log_exit():
+    log = {
+        "action": "exit",
+        "timestamp": datetime.now().isoformat()
+    }
+    collection.insert_one(log)
+    socketio.emit('update_data', {"message": "New exit logged"})
+
 
 @app.route("/logs", methods=["GET"])
 def get_logs():
@@ -79,26 +102,45 @@ def analytics():
 def interval_analytics():
     try:
         pipeline = [
-            {
-                "$group": {
-                    "_id": {
-                        "year": {"$year": "$timestamp"},
-                        "month": {"$month": "$timestamp"},
-                        "day": {"$dayOfMonth": "$timestamp"},
-                        "hour": {"$hour": "$timestamp"},
-                        "minute": {"$subtract": [
-                            {"$minute": "$timestamp"},
-                            {"$mod": [{"$minute": "$timestamp"}, 5]}
-                        ]},
-                        "action": "$action"
-                    },
-                    "count": {"$sum": 1}
-                }
-            },
-            {
-                "$sort": {"_id.year": 1, "_id.month": 1, "_id.day": 1, "_id.hour": 1, "_id.minute": 1}
+    {
+        "$addFields": {
+            "timestamp": {
+                "$cond": [
+                    { "$not": [{ "$eq": [{ "$type": "$timestamp" }, "date"] }] },
+                    { "$toDate": "$timestamp" },
+                    "$timestamp"
+                ]
             }
-        ]
+        }
+    },
+    {
+        "$group": {
+            "_id": {
+                "year": { "$year": "$timestamp" },
+                "month": { "$month": "$timestamp" },
+                "day": { "$dayOfMonth": "$timestamp" },
+                "hour": { "$hour": "$timestamp" },
+                "minute": {
+                    "$subtract": [
+                        { "$minute": "$timestamp" },
+                        { "$mod": [{ "$minute": "$timestamp" }, 5] }
+                    ]
+                },
+                "action": "$action"
+            },
+            "count": { "$sum": 1 }
+        }
+    },
+    {
+        "$sort": {
+            "_id.year": 1,
+            "_id.month": 1,
+            "_id.day": 1,
+            "_id.hour": 1,
+            "_id.minute": 1
+        }
+    }
+]
         results = collection.aggregate(pipeline)
 
         data = {}
