@@ -159,5 +159,5 @@ Feel free to contribute by submitting pull requests or issues!
 
 ## Support
 
-For support, email labzmad44@gmail.com .
+For support, email err@titansec.team .
 
