@@ -18,7 +18,7 @@ bool exitDetected = false;
 const char* ssid     = "errr";
 const char* password = "err@12345";
 
-const char* serverIP = "http://192.168.236.179:5000";
+const char* serverIP = "http://192.168.166.179:5000";
 
 void setup() {
   // Initialize serial monitor
