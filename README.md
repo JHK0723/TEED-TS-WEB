@@ -35,10 +35,10 @@ Collected data is visualized through dynamic graphs and stored in CSV format, ma
 1. **Arduino IDE**: For programming the ESP8266 microcontroller.
 2. **Python**: For data processing and visualization.
    - Libraries used:
-     - `csv`: Handles data logging.
+     - `pymongo`: Handles data logging using MongoDB.
      - `time` & `datetime`: For timestamps.
-     - `matplotlib`: For creating animated bar graphs.
-     - `serial`: For serial communication with the ESP8266.
+     - `flask/socket_io`: For creating animated bar graphs in a web page with the log datas being displayed!.
+     - `env`: For storing creditials of MongoDB.
 
 ---
 
@@ -82,7 +82,7 @@ Collected data is visualized through dynamic graphs and stored in CSV format, ma
 1. Install **Arduino IDE** and upload the provided client-side code to the ESP8266.
 2. Install Python (3.x) and required libraries using:  
    ```bash
-   pip install matplotlib pyserial
+   pip install flask flask_socketio pymongo dotenv
     ```
 A practical, precise, and scalable solution for monitoring movements in real-time. This system prioritizes hygiene, efficiency, and data visualization, making it suitable for a variety of environments, including healthcare, retail, and public spaces.
 

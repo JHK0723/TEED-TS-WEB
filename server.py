@@ -9,7 +9,6 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 from pathlib import Path
-import threading
 # Load environment variables
 env_path = Path('.') / '.env'
 load_dotenv(dotenv_path=env_path)
