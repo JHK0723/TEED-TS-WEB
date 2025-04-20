@@ -51,8 +51,8 @@ Collected data is visualized through dynamic graphs and stored in CSV format, ma
    - IR sensors monitor movements by detecting interruptions in their beams.
 
 3. **Data Processing**:  
-   - The ESP8266 categorizes events as **entry** or **exit** and sends the data to a laptop.
-   - Timestamped data is logged in a CSV file.
+   - The ESP8266 categorizes events as **entry** or **exit** and sends the data to the MongoDB server.
+   - Timestamped data is logged in MongoDB Database.
 
 4. **Visualization**:  
    - Real-time bar graphs show ongoing entry/exit counts.
@@ -148,13 +148,15 @@ Feel free to contribute by submitting pull requests or issues!
 
 ## Screenshots
 
-![screenshots](https://github.com/LegitCoconut/TEED-TS/blob/main/screenshot/block_diagran.jpg).
+![screenshots](https://github.com/ERROR-SIDDH/TEED-TS-WEB/blob/main/screenshot/block_diagran.jpg).
 
-![screenshots](https://github.com/LegitCoconut/TEED-TS/blob/main/screenshot/out_csv.jpg)
+![screenshots](https://github.com/ERROR-SIDDH/TEED-TS-WEB/blob/main/screenshot/main_page.png)
 
-![screenshots](https://github.com/LegitCoconut/TEED-TS/blob/main/screenshot/out_graph.jpg)
+![screenshots](https://github.com/ERROR-SIDDH/TEED-TS-WEB/blob/main/screenshot/stacked_bar_graph.png)
 
-![screenshots](https://github.com/LegitCoconut/TEED-TS/blob/main/screenshot/project.jpg)
+![screenshots](https://github.com/ERROR-SIDDH/TEED-TS-WEB/blob/main/screenshot/pie_chart.png)
+
+![screenshots](https://github.com/ERROR-SIDDH/TEED-TS-WEB/blob/main/screenshot/project.jpg)
 
 
 ## Support
