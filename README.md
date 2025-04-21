@@ -98,10 +98,6 @@ A practical, precise, and scalable solution for monitoring movements in real-tim
 - **Real-Time Insights**: Provides live tracking for better monitoring.
 - **Scalable**: Adaptable to various use cases, including large-scale deployments.
 
-## 🖼️ Visualization Example
-
-*Include your data visualization example here (e.g., graphs, charts, or images demonstrating real-time tracking).*
-
 ## 📚 References
 
 - [Arduino People Counter](#)
